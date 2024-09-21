@@ -1,32 +1,38 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../config/theme';
+import { ThemeContext } from "@/providers/ThemeProvider";
+import React, { useContext } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 interface FormErrorMessageProps {
   error?: string;
   visible?: boolean;
 }
 
-const FormErrorMessage: React.FC<FormErrorMessageProps> = ({ error, visible }) => {
+const FormErrorMessage: React.FC<FormErrorMessageProps> = ({
+  error,
+  visible,
+}) => {
+  const { theme } = useContext(ThemeContext);
+
   if (!visible || !error) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.errorText}>{error}</Text>
+    <View style={styles(theme).container}>
+      <Text style={styles(theme).errorText}>{error}</Text>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: 5,
-  },
-  errorText: {
-    color: Colors.red,
-    fontSize: 14,
-  },
-});
+const styles = (theme: any) =>
+  StyleSheet.create({
+    container: {
+      marginVertical: 5,
+    },
+    errorText: {
+      color: theme.red,
+      fontSize: 14,
+    },
+  });
 
 export default FormErrorMessage;

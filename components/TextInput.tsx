@@ -1,56 +1,76 @@
-import React from 'react';
-import { View, TextInput as RNTextInput, StyleSheet, Text, TextInputProps } from 'react-native';
-import { Colors } from '@/config/theme';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useContext } from "react";
+import { View, TextInput as RNTextInput, StyleSheet, Text } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { ThemeContext } from "@/providers/ThemeProvider";
+import { useTogglePasswordVisibility } from "../hooks/useTogglePasswordVisibility";
 
-interface CustomTextInputProps extends TextInputProps {
-    label?: string;
-    leftIconName?: keyof typeof MaterialIcons.glyphMap;
+interface CustomTextInputProps {
+  label?: string;
+  leftIconName?: keyof typeof MaterialIcons.glyphMap;
+  isSecureTextEntry?: boolean;
+  [key: string]: any;
 }
 
 const CustomTextInput: React.FC<CustomTextInputProps> = ({
-    label,
-    leftIconName,
-    ...otherProps
+  label,
+  leftIconName,
+  isSecureTextEntry,
+  ...otherProps
 }) => {
-    return (
-        <View style={styles.container}>
-            {label && <Text style={styles.label}>{label}</Text>}
-            <View style={styles.inputContainer}>
-                {leftIconName && <MaterialIcons name={leftIconName} size={24} color={Colors.primary} />}
-                <RNTextInput
-                    style={styles.input}
-                    placeholderTextColor={Colors.gray}
-                    autoCapitalize="none"
-                    {...otherProps}
-                />
-            </View>
-        </View>
-    );
+  const { passwordVisibility, handlePasswordVisibility, rightIcon } =
+    useTogglePasswordVisibility();
+  const { theme } = useContext(ThemeContext);
+
+  return (
+    <View style={styles(theme).container}>
+      {label && <Text style={styles(theme).label}>{label}</Text>}
+      <View style={styles(theme).inputContainer}>
+        {leftIconName && (
+          <MaterialIcons name={leftIconName} size={24} color={theme.primary} />
+        )}
+        <RNTextInput
+          style={styles(theme).input}
+          placeholderTextColor={theme.gray}
+          secureTextEntry={!isSecureTextEntry ? false : passwordVisibility}
+          {...otherProps}
+        />
+        {isSecureTextEntry && (
+          <MaterialIcons
+            name={rightIcon as keyof typeof MaterialIcons.glyphMap}
+            size={24}
+            color={theme.primary}
+            onLongPress={handlePasswordVisibility}
+            onPress={handlePasswordVisibility}
+          />
+        )}
+      </View>
+    </View>
+  );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: any) =>
+  StyleSheet.create({
     container: {
-        marginVertical: 10,
+      marginVertical: 10,
     },
     label: {
-        fontSize: 14,
-        color: Colors.black,
-        marginBottom: 5,
+      fontSize: 14,
+      color: theme.text,
+      marginBottom: 5,
     },
     inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.lightGray,
-        borderRadius: 8,
-        padding: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.lightGray,
+      borderRadius: 8,
+      padding: 10,
     },
     input: {
-        flex: 1,
-        marginLeft: 10,
-        fontSize: 16,
-        color: Colors.black,
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 16,
+      color: theme.text,
     },
-});
+  });
 
 export default CustomTextInput;

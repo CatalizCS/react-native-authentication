@@ -1,27 +1,28 @@
-// screens/ProfileScreen.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
-  StyleSheet,
   Text,
+  StyleSheet,
   Image,
   TouchableOpacity,
+  Switch,
   Alert,
 } from "react-native";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import CustomTextInput from "@/components/TextInput";
-import Button from "@/components/Button";
+import CustomTextInput from "../components/TextInput";
+import Button from "../components/Button";
 import * as ImagePicker from "expo-image-picker";
-import { auth } from "@/config/firebase";
+import { auth, db } from "../config/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
-import { Colors } from "@/config/theme";
+import { ThemeContext } from "@/providers/ThemeProvider";
+import { darkTheme } from "@/config/themes";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ProfileScreen = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [name, setName] = useState<string>("");
   const [address, setAddress] = useState<string>("");
-  const [email, setEmail] = useState<string>(auth.currentUser?.email || "");
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load profile data from Firestore
@@ -35,6 +36,7 @@ const ProfileScreen = () => {
           setName(userData?.name || "");
           setAddress(userData?.address || "");
           setAvatar(userData?.avatar || null);
+          setIsAnonymous(userData?.isAnonymous || false);
         }
       } catch (error) {
         Alert.alert("Error", "Failed to load profile data.");
@@ -66,33 +68,21 @@ const ProfileScreen = () => {
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
-      let avatarUrl = avatar;
-      const storage = getStorage();
-
-      // If a new avatar is selected, upload to Firebase Storage
-      if (avatar && avatar.startsWith("file://")) {
-        const response = await fetch(avatar);
-        const blob = await response.blob();
-        const avatarRef = ref(storage, `avatars/${auth.currentUser?.uid}`);
-        await uploadBytes(avatarRef, blob);
-        avatarUrl = await getDownloadURL(avatarRef); // Get the download URL
-      }
-
-      // Save profile details in Firestore
       const userDocRef = doc(db, "users", auth.currentUser?.uid!);
       await setDoc(
         userDocRef,
         {
           name,
           address,
-          avatar: avatarUrl,
+          avatar,
+          isAnonymous,
         },
         { merge: true }
       );
 
+      await AsyncStorage.setItem("isAnonymous", isAnonymous.toString());
       Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
-      console.log(error);
       Alert.alert("Error", "Failed to update profile.");
     } finally {
       setIsLoading(false);
@@ -100,16 +90,19 @@ const ProfileScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Edit Profile</Text>
+    <View style={styles(theme).container}>
+      <Text style={styles(theme).title}>Edit Profile</Text>
 
       {/* Avatar Picker */}
-      <TouchableOpacity onPress={pickAvatar} style={styles.avatarContainer}>
+      <TouchableOpacity
+        onPress={pickAvatar}
+        style={styles(theme).avatarContainer}
+      >
         {avatar ? (
-          <Image source={{ uri: avatar }} style={styles.avatar} />
+          <Image source={{ uri: avatar }} style={styles(theme).avatar} />
         ) : (
-          <View style={styles.placeholderAvatar}>
-            <Text style={styles.avatarText}>Pick Avatar</Text>
+          <View style={styles(theme).placeholderAvatar}>
+            <Text style={styles(theme).avatarText}>Pick Avatar</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -118,16 +111,32 @@ const ProfileScreen = () => {
       <CustomTextInput
         label="Name"
         placeholder="Enter your name"
+        isSecureTextEntry={false}
         value={name}
         onChangeText={setName}
       />
-      <CustomTextInput label="Email" value={email} editable={false} />
       <CustomTextInput
         label="Address"
         placeholder="Enter your address"
+        isSecureTextEntry={false}
         value={address}
         onChangeText={setAddress}
       />
+
+      {/* Anonymous Toggle */}
+      <View style={styles(theme).anonymousContainer}>
+        <Text style={styles(theme).anonymousLabel}>Chat Anonymously</Text>
+        <Switch
+          value={isAnonymous}
+          onValueChange={(value) => setIsAnonymous(value)}
+        />
+      </View>
+
+      {/* Dark Mode Toggle */}
+      <View style={styles(theme).toggleContainer}>
+        <Text style={styles(theme).toggleLabel}>Dark Mode</Text>
+        <Switch value={theme === darkTheme} onValueChange={toggleTheme} />
+      </View>
 
       {/* Save Button */}
       <Button
@@ -138,7 +147,7 @@ const ProfileScreen = () => {
       {/* Logout Button */}
       <Button
         title="Logout"
-        onPress={() =>
+        onPress={() => {
           Alert.alert("Logout", "Are you sure you want to logout?", [
             {
               text: "Cancel",
@@ -148,50 +157,71 @@ const ProfileScreen = () => {
               text: "Logout",
               onPress: () => auth.signOut(),
             },
-          ])
-        }
-        style={styles.secondaryButton}
+          ]);
+        }}
+        style={styles(theme).secondaryButton}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: Colors.black,
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  avatarContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  placeholderAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.gray,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarText: {
-    color: Colors.white,
-  },
-  secondaryButton: {
-    marginTop: 10,
-  },
-});
+const styles = (theme: any) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+      padding: 20,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: theme.text,
+      marginBottom: 20,
+      textAlign: "center",
+    },
+    avatarContainer: {
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    avatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+    },
+    placeholderAvatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: theme.gray,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    avatarText: {
+      color: theme.text,
+    },
+    anonymousContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginVertical: 20,
+    },
+    anonymousLabel: {
+      fontSize: 16,
+      color: theme.text,
+    },
+    toggleContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginVertical: 20,
+    },
+    toggleLabel: {
+      fontSize: 16,
+      color: theme.text,
+    },
+    secondaryButton: {
+      backgroundColor: theme.secondary,
+    },
+  });
 
 export default ProfileScreen;

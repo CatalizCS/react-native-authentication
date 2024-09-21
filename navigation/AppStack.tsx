@@ -7,7 +7,6 @@ import { NavigationContainer } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StyleSheet, Animated, TouchableOpacity, Alert } from "react-native";
 
-const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 export const AppStack = () => {
