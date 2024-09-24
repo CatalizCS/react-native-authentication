@@ -20,3 +20,12 @@ export const signupValidationSchema = Yup.object().shape({
 export const passwordResetSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
 });
+
+export const userValidationSchema = Yup.object().shape({
+  id: Yup.string().required("ID is required"),
+  name: Yup.string().required("Name is required"),
+  email: Yup.string().email("Invalid email").required("Email is required"),
+  age: Yup.number().required("Age is required"),
+  createdAt: Yup.date().required("Created at is required"),
+  updatedAt: Yup.date().required("Updated at is required"),
+});

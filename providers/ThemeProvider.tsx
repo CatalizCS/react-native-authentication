@@ -41,8 +41,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         if (savedTheme) {
           setTheme(savedTheme === "dark" ? darkTheme : lightTheme);
         } else {
-        //   const systemTheme = Appearance.getColorScheme();
-        //   setTheme(systemTheme === "dark" ? darkTheme : lightTheme);
         setTheme(lightTheme);
         }
       } catch (error) {

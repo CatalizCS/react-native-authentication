@@ -1,13 +1,15 @@
-import React from "react";
-import { createStackNavigator } from "@react-navigation/stack";
+import React, { useContext } from "react";
 import HomeScreen from "@/screens/HomeScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { StyleSheet, Animated, TouchableOpacity, Alert } from "react-native";
+import { StyleSheet } from "react-native";
+import UsersScreen from "@/screens/UsersScreen";
+import { ThemeContext } from "@/providers/ThemeProvider";
 
 const Tab = createBottomTabNavigator();
+const { theme } = useContext(ThemeContext);
 
 export const AppStack = () => {
   return (
@@ -15,7 +17,14 @@ export const AppStack = () => {
       <Tab.Navigator
         initialRouteName="Home"
         screenOptions={{
-          tabBarActiveTintColor: "#e91e63",
+          headerShown: false,
+          tabBarActiveTintColor: theme.primary,
+          tabBarInactiveTintColor: theme.text,
+          tabBarStyle: {
+            backgroundColor: theme.background,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: theme.border,
+          },
         }}
       >
         <Tab.Screen
@@ -25,6 +34,16 @@ export const AppStack = () => {
             tabBarLabel: "Home",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="home" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Users"
+          component={UsersScreen}
+          options={{
+            tabBarLabel: "Users",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="people" color={color} size={size} />
             ),
           }}
         />
@@ -42,63 +61,3 @@ export const AppStack = () => {
     </NavigationContainer>
   );
 };
-
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  shawdow: {
-    shadowColor: "#DDDDDD",
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 5,
-  },
-  button: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  bottomBar: {},
-  btnCircleUp: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#E8E8E8",
-    bottom: 30,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 1,
-  },
-  imgCircle: {
-    width: 30,
-    height: 30,
-    tintColor: "gray",
-  },
-  tabbarItem: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  img: {
-    width: 30,
-    height: 30,
-  },
-  screen1: {
-    flex: 1,
-    backgroundColor: "#BFEFFF",
-  },
-  screen2: {
-    flex: 1,
-    backgroundColor: "#FFEBCD",
-  },
-});

@@ -7,6 +7,7 @@ export const lightTheme = {
   lightGray: '#f0f0f0',
   white: '#ffffff',
   black: '#000000',
+  border: '#dcdcdc',
 };
 
 export const darkTheme = {
@@ -18,4 +19,5 @@ export const darkTheme = {
   lightGray: '#2c2c2c',
   white: '#000000',
   black: '#ffffff',
+  border: '#dcdcdc',
 };

@@ -7,13 +7,18 @@ interface ButtonProps {
   title: string;
   onPress: () => void;
   style?: ViewStyle;
+  disabled?: boolean;
 }
 
-const Button: React.FC<ButtonProps> = ({ title, onPress, style }) => {
+const Button: React.FC<ButtonProps> = ({ title, onPress, style, disabled }) => {
   const { theme } = useContext(ThemeContext);
 
   return (
-    <TouchableOpacity style={[styles(theme).button, style]} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles(theme).button, style]}
+      onPress={onPress}
+      disabled={disabled}
+    >
       <Text style={styles(theme).buttonText}>{title}</Text>
     </TouchableOpacity>
   );

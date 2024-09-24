@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Platform,
 } from "react-native";
 import CustomTextInput from "../components/TextInput";
 import Button from "../components/Button";
@@ -20,6 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const ProfileScreen = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [address, setAddress] = useState<string>("");
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -33,6 +35,7 @@ const ProfileScreen = () => {
         const userDoc = await getDoc(doc(db, "users", auth.currentUser?.uid!));
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          setEmail(auth.currentUser?.email || "");
           setName(userData?.name || "");
           setAddress(userData?.address || "");
           setAvatar(userData?.avatar || null);
@@ -72,6 +75,7 @@ const ProfileScreen = () => {
       await setDoc(
         userDocRef,
         {
+          email,
           name,
           address,
           avatar,
@@ -108,6 +112,14 @@ const ProfileScreen = () => {
       </TouchableOpacity>
 
       {/* Editable Fields */}
+      <CustomTextInput
+        label="Email"
+        placeholder="Enter your email"
+        isSecureTextEntry={false}
+        value={email}
+        onChangeText={setEmail}
+      />
+
       <CustomTextInput
         label="Name"
         placeholder="Enter your name"
@@ -148,16 +160,20 @@ const ProfileScreen = () => {
       <Button
         title="Logout"
         onPress={() => {
-          Alert.alert("Logout", "Are you sure you want to logout?", [
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-            {
-              text: "Logout",
-              onPress: () => auth.signOut(),
-            },
-          ]);
+          if (Platform.OS == "web") {
+            auth.signOut();
+          } else {
+            Alert.alert("Logout", "Are you sure you want to logout?", [
+              {
+                text: "Cancel",
+                style: "cancel",
+              },
+              {
+                text: "Logout",
+                onPress: () => auth.signOut(),
+              },
+            ]);
+          }
         }}
         style={styles(theme).secondaryButton}
       />

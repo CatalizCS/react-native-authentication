@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "349972751789",
+    "project_id": "react-native-college",
+    "storage_bucket": "react-native-college.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:349972751789:android:644f68ca591bb2302ded24",
+        "android_client_info": {
+          "package_name": "com.tamaisme.Massenger"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "349972751789-21s8rcvdob44kjrdl8q1u14hkv18uetl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5zF0hlIl1GCM5JjQh59Qqyb87I7YeZgA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "349972751789-21s8rcvdob44kjrdl8q1u14hkv18uetl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

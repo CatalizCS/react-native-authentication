@@ -1,10 +1,17 @@
-import React, { useContext, useState } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import React, { useContext, useEffect, useState } from "react";
+import { View, StyleSheet, Text, Platform } from "react-native";
 import CustomTextInput from "@/components/TextInput";
 import Button from "@/components/Button";
 import FormErrorMessage from "@/components/FromErrorMessage";
 import { auth } from "@/config/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from "firebase/auth";
+
+import * as Google from "expo-auth-session/providers/google";
 
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types";
@@ -25,6 +32,32 @@ const LoginScreen = ({ navigation }: Props) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { theme } = useContext(ThemeContext);
+
+  // Google Auth Session
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId:
+      "349972751789-21s8rcvdob44kjrdl8q1u14hkv18uetl.apps.googleusercontent.com",
+    iosClientId:
+      "349972751789-06sbjoigouol4ms2ombps89d3ik7k9q0.apps.googleusercontent.com",
+    androidClientId:
+      "349972751789-21s8rcvdob44kjrdl8q1u14hkv18uetl.apps.googleusercontent.com ",
+    redirectUri: "https://react-native-college.firebaseapp.com/__/auth/handler",
+  });
+
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await promptAsync();
+      if (result?.type === "success" && result.authentication) {
+        const { idToken } = result.authentication;
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithPopup(auth, credential);
+      } else {
+        setError("An unknown error occurred");
+      }
+    } catch (err) {
+      setError("An unknown error occurred");
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -50,6 +83,13 @@ const LoginScreen = ({ navigation }: Props) => {
     }
   };
 
+  // Handle response from Google authentication
+  useEffect(() => {
+    if (response?.type === "success") {
+      handleGoogleLogin();
+    }
+  }, [response]);
+
   return (
     <View style={styles(theme).container}>
       <Text style={styles(theme).title}>Login</Text>
@@ -70,14 +110,25 @@ const LoginScreen = ({ navigation }: Props) => {
         onChangeText={setPassword}
       />
       <FormErrorMessage error={error} visible={!!error} />
-      {/* add forgot password */}
+
+      {/* Add Forgot Password */}
       <Text
         style={styles(theme).forgotPassword}
         onPress={() => navigation.navigate("ForgotPassword")}
       >
         Forgot Password?
       </Text>
+
       <Button title="Login" onPress={handleLogin} />
+
+      {/* Google Sign In */}
+      <Button
+        title="Sign in with Google"
+        onPress={handleGoogleLogin}
+        style={styles(theme).socialButton}
+      />
+
+      {/* Sign Up Button */}
       <Button
         title="Sign Up"
         onPress={() => navigation.navigate("Signup")}
@@ -108,6 +159,11 @@ const styles = (theme: any) =>
       textAlign: "right",
       color: theme.primary,
       marginBottom: 10,
+    },
+    socialButton: {
+      backgroundColor: theme.socialButtonBackground,
+      color: theme.white,
+      marginTop: 10,
     },
   });
 

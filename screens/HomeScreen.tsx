@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
+  Modal,
 } from "react-native";
 import { auth, db, storage } from "@/config/firebase";
 import {
@@ -23,6 +25,7 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
+import { BlurView } from "expo-blur"; 
 import Button from "@/components/Button";
 import { ThemeContext } from "@/providers/ThemeProvider";
 
@@ -31,7 +34,7 @@ interface Message {
   userId: string;
   name: string;
   message: string;
-  imageUrl?: string; // Optional image URL field
+  imageUrl?: string;
   avatar: string;
   timestamp: any;
 }
@@ -41,6 +44,8 @@ const HomeScreen = () => {
   const [newMessage, setNewMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+  const [isImageZoomed, setIsImageZoomed] = useState(false);  // State for image zoom
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);  // State for the selected image
   const { theme } = useContext(ThemeContext);
   const flatListRef = useRef<FlatList>(null);
 
@@ -120,7 +125,7 @@ const HomeScreen = () => {
 
   // Handle image removal
   const handleRemoveImage = () => {
-    setImage(null); // Clear the selected image
+    setImage(null);
   };
 
   // Handle message send with or without image
@@ -162,6 +167,12 @@ const HomeScreen = () => {
     }
   };
 
+  // Handle image zoom click
+  const handleZoomImage = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setIsImageZoomed(true);
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -185,10 +196,12 @@ const HomeScreen = () => {
                   <Text style={styles(theme).messageName}>{item.name}</Text>
                   <Text style={styles(theme).messageText}>{item.message}</Text>
                   {item.imageUrl && (
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={styles(theme).chatImage}
-                    />
+                    <TouchableOpacity onPress={() => handleZoomImage(item.imageUrl)}>
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        style={styles(theme).chatImage}
+                      />
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
@@ -235,6 +248,32 @@ const HomeScreen = () => {
             </View>
           )}
         </View>
+
+        {/* Modal for Zoomed Image */}
+        {selectedImage && (
+          <Modal
+            visible={isImageZoomed}
+            transparent={true}
+            onRequestClose={() => setIsImageZoomed(false)}
+          >
+            <TouchableOpacity
+              style={styles(theme).modalContainer}
+              activeOpacity={1}
+              onPressOut={() => setIsImageZoomed(false)}
+            >
+              <BlurView
+                intensity={50}
+                style={styles(theme).blurBackground}
+              />
+              <View style={styles(theme).closeModalButton}>
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={styles(theme).zoomedImage}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -326,6 +365,24 @@ const styles = (theme: any) =>
       backgroundColor: theme.danger,
       padding: 5,
       borderRadius: 8,
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    blurBackground: {
+      ...StyleSheet.absoluteFillObject,
+      zIndex: -1,
+    },
+    zoomedImage: {
+      width: 300,
+      height: 300,
+      borderRadius: 10,
+    },
+    closeModalButton: {
+      justifyContent: "center",
+      alignItems: "center",
     },
   });
 
