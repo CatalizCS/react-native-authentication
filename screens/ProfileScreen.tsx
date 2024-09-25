@@ -8,6 +8,7 @@ import {
   Switch,
   Alert,
   Platform,
+  ScrollView,
 } from "react-native";
 import CustomTextInput from "../components/TextInput";
 import Button from "../components/Button";
@@ -110,73 +111,74 @@ const ProfileScreen = () => {
           </View>
         )}
       </TouchableOpacity>
-
-      {/* Editable Fields */}
-      <CustomTextInput
-        label="Email"
-        placeholder="Enter your email"
-        isSecureTextEntry={false}
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <CustomTextInput
-        label="Name"
-        placeholder="Enter your name"
-        isSecureTextEntry={false}
-        value={name}
-        onChangeText={setName}
-      />
-      <CustomTextInput
-        label="Address"
-        placeholder="Enter your address"
-        isSecureTextEntry={false}
-        value={address}
-        onChangeText={setAddress}
-      />
-
-      {/* Anonymous Toggle */}
-      <View style={styles(theme).anonymousContainer}>
-        <Text style={styles(theme).anonymousLabel}>Chat Anonymously</Text>
-        <Switch
-          value={isAnonymous}
-          onValueChange={(value) => setIsAnonymous(value)}
+      <ScrollView>
+        {/* Editable Fields */}
+        <CustomTextInput
+          label="Email"
+          placeholder="Enter your email"
+          isSecureTextEntry={false}
+          value={email}
+          onChangeText={setEmail}
         />
-      </View>
 
-      {/* Dark Mode Toggle */}
-      <View style={styles(theme).toggleContainer}>
-        <Text style={styles(theme).toggleLabel}>Dark Mode</Text>
-        <Switch value={theme === darkTheme} onValueChange={toggleTheme} />
-      </View>
+        <CustomTextInput
+          label="Name"
+          placeholder="Enter your name"
+          isSecureTextEntry={false}
+          value={name}
+          onChangeText={setName}
+        />
+        <CustomTextInput
+          label="Address"
+          placeholder="Enter your address"
+          isSecureTextEntry={false}
+          value={address}
+          onChangeText={setAddress}
+        />
 
-      {/* Save Button */}
-      <Button
-        title={isLoading ? "Saving..." : "Save Profile"}
-        onPress={handleSaveProfile}
-      />
+        {/* Anonymous Toggle */}
+        <View style={styles(theme).anonymousContainer}>
+          <Text style={styles(theme).anonymousLabel}>Chat Anonymously</Text>
+          <Switch
+            value={isAnonymous}
+            onValueChange={(value) => setIsAnonymous(value)}
+          />
+        </View>
 
-      {/* Logout Button */}
-      <Button
-        title="Logout"
-        onPress={() => {
-          if (Platform.OS == "web") {
-            auth.signOut();
-          } else {
-            Alert.alert("Logout", "Are you sure you want to logout?", [
-              {
-                text: "Cancel",
-                style: "cancel",
-              },
-              {
-                text: "Logout",
-                onPress: () => auth.signOut(),
-              },
-            ]);
-          }
-        }}
-        style={styles(theme).secondaryButton}
-      />
+        {/* Dark Mode Toggle */}
+        <View style={styles(theme).toggleContainer}>
+          <Text style={styles(theme).toggleLabel}>Dark Mode</Text>
+          <Switch value={theme === darkTheme} onValueChange={toggleTheme} />
+        </View>
+
+        {/* Save Button */}
+        <Button
+          title={isLoading ? "Saving..." : "Save Profile"}
+          onPress={handleSaveProfile}
+        />
+
+        {/* Logout Button */}
+        <Button
+          title="Logout"
+          onPress={() => {
+            if (Platform.OS == "web") {
+              auth.signOut();
+            } else {
+              Alert.alert("Logout", "Are you sure you want to logout?", [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "Logout",
+                  onPress: () => auth.signOut(),
+                },
+              ]);
+            }
+          }}
+          style={styles(theme).secondaryButton}
+        />
+      </ScrollView>
     </View>
   );
 };

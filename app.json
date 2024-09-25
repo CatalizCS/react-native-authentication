@@ -6,6 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
+    "currentFullName": "@catalizcs/firebase-auth",
+    "originalFullName": "@catalizcs/firebase-auth",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
@@ -35,9 +37,7 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "com.tamaisme.massenger",
-      "permissions": [
-        "android.permission.INTERNET"
-      ]
+      "permissions": ["android.permission.INTERNET"]
     },
     "web": {
       "bundler": "metro",

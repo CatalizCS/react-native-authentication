@@ -4,19 +4,14 @@ import CustomTextInput from "@/components/TextInput";
 import Button from "@/components/Button";
 import FormErrorMessage from "@/components/FromErrorMessage";
 import { auth } from "@/config/firebase";
-import {
-  signInWithEmailAndPassword,
-  FacebookAuthProvider,
-  signInWithPopup,
-} from "firebase/auth";
-
-import * as Facebook from "expo-auth-session/providers/facebook";
 
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types";
 import { FirebaseError } from "firebase/app";
 import { ThemeContext } from "@/providers/ThemeProvider";
-import { makeRedirectUri } from "expo-auth-session";
+import GoogleLogin from "@/login/GoogleLogin";
+import FacebookLogin from "@/login/FacebookLogin";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 type LoginScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -32,53 +27,6 @@ const LoginScreen = ({ navigation }: Props) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { theme } = useContext(ThemeContext);
-
-  // Facebook Auth Session
-  const [request, response, promptFacebookAsync] = Facebook.useAuthRequest({
-    clientId: "1603817666875455",
-    scopes: ["email", "public_profile"],
-  });
-
-  const _FacebookSignInWeb = async () => {
-    try {
-      const provider = new FacebookAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      setError("An unknown error occurred");
-    }
-  };
-
-  const _FabebookSignInMobile = async () => {
-    try {
-      await promptFacebookAsync();
-    } catch (err) {
-      setError("An unknown error occurred");
-    }
-  };
-
-  useEffect(() => {
-    if (response?.type === "success" && response.authentication) {
-      const { accessToken } = response.authentication;
-      const credential = FacebookAuthProvider.credential(accessToken);
-      signInWithPopup(auth, credential)
-        .then(() => {
-          // Handle successful login
-          console.log("Facebook login successful");
-        })
-        .catch((error) => {
-          setError(error.message);
-          console.log("Facebook login error:", error);
-        });
-    }
-  }, [response]);
-
-  const handleFacebookLogin = () => {
-    if (Platform.OS === "web") {
-      _FacebookSignInWeb();
-    } else {
-      _FabebookSignInMobile();
-    }
-  };
 
   const handleLogin = async () => {
     try {
@@ -134,12 +82,10 @@ const LoginScreen = ({ navigation }: Props) => {
       <Button title="Login" onPress={handleLogin} />
       {/* add text "more options" */}
       <Text style={{ textAlign: "center", marginTop: 20 }}>Or</Text>
+      {/* Google Sign In */}
+      <GoogleLogin />
       {/* Facebook Sign In */}
-      <Button
-        title="Sign In with Facebook"
-        onPress={handleFacebookLogin}
-        style={styles(theme).socialButton}
-      />
+      <FacebookLogin />
 
       {/* Sign Up Button */}
       <Button

@@ -9,9 +9,12 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   TouchableOpacity,
   Modal,
+  ScrollView,
+  Animated,
+  Keyboard,
+  KeyboardEvent,
 } from "react-native";
 import { auth, db, storage } from "@/config/firebase";
 import {
@@ -25,9 +28,10 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from "expo-image-picker";
-import { BlurView } from "expo-blur"; 
+import { BlurView } from "expo-blur";
 import Button from "@/components/Button";
 import { ThemeContext } from "@/providers/ThemeProvider";
+import { MaterialIcons } from "@expo/vector-icons";
 
 interface Message {
   id: string;
@@ -44,10 +48,25 @@ const HomeScreen = () => {
   const [newMessage, setNewMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
-  const [isImageZoomed, setIsImageZoomed] = useState(false);  // State for image zoom
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);  // State for the selected image
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const { theme } = useContext(ThemeContext);
   const flatListRef = useRef<FlatList>(null);
+
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [inputAnim] = useState(new Animated.Value(0));
+
+  const inputContainerStyle = {
+    ...styles.inputContainer,
+    transform: [
+      {
+        translateY: inputAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -100], // Adjust the offset as needed
+        }),
+      },
+    ],
+  };
 
   const [profile, setProfile] = useState({
     name: "",
@@ -94,10 +113,47 @@ const HomeScreen = () => {
         id: doc.id,
         ...doc.data(),
       })) as Message[];
+
       setMessages(loadedMessages);
+
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     });
 
+    flatListRef.current?.scrollToEnd({ animated: true });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      (event: KeyboardEvent) => {
+        Animated.timing(inputAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        Animated.timing(inputAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
   }, []);
 
   // Handle image upload
@@ -175,31 +231,40 @@ const HomeScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles(theme).container}>
-          <Text style={styles(theme).title}>Chat</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Chat</Text>
+        </View>
 
-          {/* Message List */}
+        {/* Message List with fade-in animation */}
+        <Animated.View style={{ opacity: fadeAnim }}>
           <FlatList
             data={messages}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={styles(theme).messageContainer}>
-                <Image
-                  source={{ uri: item.avatar }}
-                  style={styles(theme).avatar}
-                />
-                <View style={styles(theme).messageTextContainer}>
-                  <Text style={styles(theme).messageName}>{item.name}</Text>
-                  <Text style={styles(theme).messageText}>{item.message}</Text>
+              <View style={styles.messageContainer}>
+                {item.userId !== auth.currentUser?.uid && (
+                  <Image source={{ uri: item.avatar }} style={styles.avatar} />
+                )}
+                <View
+                  style={
+                    item.userId === auth.currentUser?.uid
+                      ? styles.myMessage
+                      : styles.receivedMessage
+                  }
+                >
+                  <Text style={styles.messageName}>{item.name}</Text>
+                  <Text style={styles.messageText}>{item.message}</Text>
                   {item.imageUrl && (
-                    <TouchableOpacity onPress={() => handleZoomImage(item.imageUrl)}>
+                    <TouchableOpacity
+                      onPress={() => handleZoomImage(item.imageUrl)}
+                    >
                       <Image
                         source={{ uri: item.imageUrl }}
-                        style={styles(theme).chatImage}
+                        style={styles.chatImage}
                       />
                     </TouchableOpacity>
                   )}
@@ -207,183 +272,182 @@ const HomeScreen = () => {
               </View>
             )}
             ref={flatListRef}
-            onContentSizeChange={() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }}
-            style={styles(theme).chatList}
+            style={styles.chatList}
+            contentContainerStyle={{ paddingBottom: 80 }}
           />
-
-          {/* New Message Input */}
-          <View style={styles(theme).inputContainer}>
-            <TextInput
-              style={styles(theme).input}
-              placeholder="Enter your message"
-              value={newMessage}
-              onChangeText={setNewMessage}
-            />
-            <Button
-              title="Pick Image"
-              onPress={pickImage}
-              style={styles(theme).imagePicker}
-            />
-            <Button
-              title={isLoading ? "Sending..." : "Send"}
-              onPress={handleSendMessage}
-              style={styles(theme).sendButton}
-            />
-          </View>
-
-          {/* Image Preview and Remove Button */}
-          {image && (
-            <View style={styles(theme).imagePreviewContainer}>
-              <Image
-                source={{ uri: image }}
-                style={styles(theme).previewImage}
-              />
-              <Button
-                title="Remove"
-                onPress={handleRemoveImage}
-                style={styles(theme).removeButton}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* Modal for Zoomed Image */}
-        {selectedImage && (
-          <Modal
-            visible={isImageZoomed}
-            transparent={true}
-            onRequestClose={() => setIsImageZoomed(false)}
-          >
-            <TouchableOpacity
-              style={styles(theme).modalContainer}
-              activeOpacity={1}
-              onPressOut={() => setIsImageZoomed(false)}
-            >
-              <BlurView
-                intensity={50}
-                style={styles(theme).blurBackground}
-              />
-              <View style={styles(theme).closeModalButton}>
-                <Image
-                  source={{ uri: selectedImage }}
-                  style={styles(theme).zoomedImage}
-                />
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        )}
+        </Animated.View>
       </ScrollView>
+
+      {/* New Message Input with slide up animation */}
+      <Animated.View style={inputContainerStyle}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your message"
+          value={newMessage}
+          onChangeText={setNewMessage}
+          onPress={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        />
+        <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+          <MaterialIcons name="image" size={24} color={theme.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
+          <MaterialIcons name="send" size={24} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* Image Preview and Remove Button */}
+      {image && (
+        <View style={styles.imagePreviewContainer}>
+          <Image source={{ uri: image }} style={styles.previewImage} />
+          <Button
+            title="Remove"
+            onPress={handleRemoveImage}
+            style={styles.removeButton}
+          />
+        </View>
+      )}
+
+      {/* Modal for Zoomed Image */}
+      {selectedImage && (
+        <Modal
+          visible={isImageZoomed}
+          transparent={true}
+          onRequestClose={() => setIsImageZoomed(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContainer}
+            activeOpacity={1}
+            onPressOut={() => setIsImageZoomed(false)}
+          >
+            <BlurView intensity={50} style={styles.blurBackground} />
+            <Image source={{ uri: selectedImage }} style={styles.zoomedImage} />
+          </TouchableOpacity>
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 };
 
-const styles = (theme: any) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.white,
-      padding: 20,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: "bold",
-      color: theme.black,
-      marginBottom: 20,
-      textAlign: "center",
-    },
-    chatList: {
-      flex: 1,
-    },
-    messageContainer: {
-      flexDirection: "row",
-      padding: 10,
-      backgroundColor: theme.lightGray,
-      marginBottom: 10,
-      borderRadius: 8,
-    },
-    avatar: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      marginRight: 10,
-    },
-    messageTextContainer: {
-      flex: 1,
-    },
-    messageName: {
-      fontWeight: "bold",
-      color: theme.primary,
-    },
-    messageText: {
-      color: theme.black,
-    },
-    chatImage: {
-      width: 150,
-      height: 150,
-      borderRadius: 8,
-      marginTop: 10,
-    },
-    inputContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: 10,
-      backgroundColor: theme.lightGray,
-      borderRadius: 8,
-      padding: 10,
-    },
-    input: {
-      flex: 1,
-      marginRight: 10,
-      padding: 10,
-      fontSize: 16,
-      backgroundColor: theme.white,
-      borderRadius: 8,
-    },
-    sendButton: {
-      backgroundColor: theme.primary,
-      color: theme.white,
-    },
-    imagePicker: {
-      backgroundColor: theme.secondary,
-      marginLeft: 10,
-      marginRight: 10,
-    },
-    imagePreviewContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: 10,
-    },
-    previewImage: {
-      width: 100,
-      height: 100,
-      borderRadius: 8,
-      marginRight: 10,
-    },
-    removeButton: {
-      backgroundColor: theme.danger,
-      padding: 5,
-      borderRadius: 8,
-    },
-    modalContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    blurBackground: {
-      ...StyleSheet.absoluteFillObject,
-      zIndex: -1,
-    },
-    zoomedImage: {
-      width: 300,
-      height: 300,
-      borderRadius: 10,
-    },
-    closeModalButton: {
-      justifyContent: "center",
-      alignItems: "center",
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f0f0f0",
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  titleContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  chatList: {
+    flex: 1,
+    paddingBottom: 20,
+  },
+  messageContainer: {
+    flexDirection: "row",
+    marginVertical: 5,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  myMessage: {
+    backgroundColor: "#007aff",
+    borderRadius: 20,
+    padding: 10,
+    maxWidth: "75%",
+    alignSelf: "flex-end",
+    marginLeft: "auto",
+    marginBottom: 10,
+    color: "white",
+  },
+  receivedMessage: {
+    backgroundColor: "#e0e0e0",
+    borderRadius: 20,
+    padding: 10,
+    maxWidth: "75%",
+    marginBottom: 10,
+  },
+  messageName: {
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  messageText: {
+    color: "#333",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+  },
+  input: {
+    flex: 1,
+    borderRadius: 20,
+    borderColor: "#ddd",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginRight: 10,
+  },
+  sendButton: {
+    backgroundColor: "#007aff",
+    borderRadius: 20,
+    padding: 10,
+  },
+  imagePicker: {
+    marginRight: 10,
+  },
+  imagePreviewContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  removeButton: {
+    backgroundColor: "#d9534f",
+    borderRadius: 10,
+    padding: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  blurBackground: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  zoomedImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
+    borderRadius: 10,
+  },
+  chatImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 10,
+  },
+});
 
 export default HomeScreen;
